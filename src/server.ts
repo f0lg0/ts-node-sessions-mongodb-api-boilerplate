@@ -1,17 +1,26 @@
 import dotenv from "dotenv";
 import express, { Express, RequestHandler } from "express";
 import cors from "cors";
+import mongoose from "mongoose";
 
 class Server {
     private app: Express;
     private host: string;
     private port: number;
+    private mongoURI: string;
 
-    constructor(host: string, port: number) {
+    constructor(host: string, port: number, mongoURI: string) {
         this.host = host;
         this.port = port;
+        this.mongoURI = mongoURI;
 
         this.app = express();
+    }
+
+    private dbConnect() {
+        mongoose.connect(this.mongoURI);
+        mongoose.connection.on("error", (error) => console.error(error));
+        mongoose.connection.on("open", () => console.log(`db: connected to database at URI -> ${this.mongoURI}`));
     }
 
     private useMiddleware() {
@@ -59,6 +68,7 @@ class Server {
     }
 
     start() {
+        this.dbConnect();
         this.useMiddleware();
         this.registerRoutes();
 
@@ -69,5 +79,5 @@ class Server {
 }
 
 dotenv.config();
-const server = new Server(process.env.HOST!, parseInt(process.env.PORT!));
+const server = new Server(process.env.HOST!, parseInt(process.env.PORT!), process.env.MONGOURI!);
 server.start();
