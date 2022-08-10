@@ -2,6 +2,8 @@ import dotenv from "dotenv";
 import express, { Express, RequestHandler } from "express";
 import cors from "cors";
 import mongoose from "mongoose";
+import session, { SessionOptions } from "express-session";
+import MongoStore from "connect-mongo";
 
 class Server {
     private app: Express;
@@ -65,6 +67,43 @@ class Server {
 
         this.app.get("/", home);
         this.app.use(notFoundHandler);
+    }
+
+    private initSessions() {
+        // 1 hour exp date
+        const cookieExpDate = 1000 * 60 * 60;
+
+        const sess: SessionOptions = {
+            // secret used to sign cookies
+            secret: process.env.SESSION_SECRET!,
+            // if resave=true express-session will always save the session data after every request (can cause race conditions)
+            resave: false,
+            // saving a session to db only if it's used for something
+            saveUninitialized: false,
+            // we use MongoDB to store sessions, tables are handled automatically by this package
+            store: MongoStore.create({
+                mongoUrl: this.mongoURI,
+            }),
+            // cookie contents, this config is for testing
+            cookie: {
+                path: "/",
+                // no js access
+                httpOnly: true,
+                // true only with https
+                secure: false,
+                // exp date
+                maxAge: cookieExpDate,
+                // https://portswigger.net/web-security/csrf/samesite-cookies
+                sameSite: "lax",
+            },
+        };
+        // production configuration, need to come back to this before deploying
+        if (process.env.ENV === "prod") {
+            this.app.set("trust proxy", 1);
+            sess.cookie!.secure = true;
+        }
+
+        this.app.use(session(sess));
     }
 
     start() {
