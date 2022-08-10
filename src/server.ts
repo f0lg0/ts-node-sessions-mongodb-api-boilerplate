@@ -5,6 +5,8 @@ import mongoose from "mongoose";
 import session, { SessionOptions } from "express-session";
 import MongoStore from "connect-mongo";
 
+import userRoutes from "./user/userRoutes";
+
 class Server {
     private app: Express;
     private host: string;
@@ -66,6 +68,7 @@ class Server {
         };
 
         this.app.get("/", home);
+        this.app.use("/user", userRoutes);
         this.app.use(notFoundHandler);
     }
 
@@ -109,6 +112,7 @@ class Server {
     start() {
         this.dbConnect();
         this.useMiddleware();
+        this.initSessions();
         this.registerRoutes();
 
         this.app.listen(this.port, this.host, () => {
