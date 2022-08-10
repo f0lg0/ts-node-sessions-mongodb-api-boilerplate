@@ -1,28 +1,24 @@
-import "reflect-metadata";
 import dotenv from "dotenv";
-import express, { Express, RequestHandler, ErrorRequestHandler } from "express";
+import express, { Express, RequestHandler } from "express";
 
 class Server {
     private app: Express;
-    private HOST: string;
-    private PORT: number;
+    private host: string;
+    private port: number;
 
-    constructor() {
-        dotenv.config();
+    constructor(host: string, port: number) {
+        this.host = host;
+        this.port = port;
+
         this.app = express();
-
-        this.HOST = process.env.HOST!;
-        this.PORT = parseInt(process.env.PORT!);
     }
 
-    start() {
-        const home: RequestHandler = (_, res) => {
-            res.json({
-                message: "Homepage",
-            });
-        };
+    private useMiddleware() {
+        this.app.use(express.json());
+    }
 
-        const not_found_handler: RequestHandler = (_, res) => {
+    private registerRoutes() {
+        const notFoundHandler: RequestHandler = (_, res) => {
             res.status(404);
             res.json({
                 error: 404,
@@ -30,23 +26,27 @@ class Server {
             });
         };
 
-        const error_handler: ErrorRequestHandler = (err, req, res, next) => {
-            res.status(res.statusCode);
+        const home: RequestHandler = (req, res) => {
+            console.log(req);
             res.json({
-                message: err.message,
-                stack: err.stack,
+                message: "Homepage",
             });
         };
 
         this.app.get("/", home);
-        this.app.use(not_found_handler);
-        this.app.use(error_handler);
+        this.app.use(notFoundHandler);
+    }
 
-        this.app.listen(this.PORT, this.HOST, () => {
-            console.log(`[*] Server running on ${this.HOST}:${this.PORT}`);
+    start() {
+        this.useMiddleware();
+        this.registerRoutes();
+
+        this.app.listen(this.port, this.host, () => {
+            console.log(`[*] Server running on ${this.host}:${this.port}`);
         });
     }
 }
 
-const server = new Server();
+dotenv.config();
+const server = new Server(process.env.HOST!, parseInt(process.env.PORT!));
 server.start();
