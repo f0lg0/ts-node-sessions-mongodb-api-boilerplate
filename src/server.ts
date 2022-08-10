@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import express, { Express, RequestHandler } from "express";
+import cors from "cors";
 
 class Server {
     private app: Express;
@@ -15,6 +16,26 @@ class Server {
 
     private useMiddleware() {
         this.app.use(express.json());
+
+        // cors
+        const allowedOrigins: string[] = ["http://localhost"];
+        const corsOptions: cors.CorsOptions = {
+            origin: function (origin: string | undefined, callback: (err: Error | null, origin?: string | boolean) => void) {
+                if (process.env.ENV === "prod") {
+                    if (origin && allowedOrigins.indexOf(origin) !== -1) {
+                        callback(null, true);
+                    } else {
+                        console.log(`[!] A unallowed origin has tried to connect --> ${origin} [!]`);
+                        callback(new Error("Not allowed by CORS"));
+                    }
+                } else {
+                    callback(null, true);
+                }
+            },
+            optionsSuccessStatus: 200,
+            credentials: true,
+        };
+        this.app.use(cors(corsOptions));
     }
 
     private registerRoutes() {
